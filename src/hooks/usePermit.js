@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useSignTypedData, usePublicClient } from 'wagmi'
-import { parseUnits, formatUnits } from 'viem'
+import { parseUnits } from 'viem'
 import {
   USDC_ADDRESS,
   USDC_ABI,
