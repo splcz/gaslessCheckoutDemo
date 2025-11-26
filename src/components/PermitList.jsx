@@ -181,8 +181,23 @@ export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
               </div>
 
               {/* 详情 */}
-              <div className="mt-2 text-xs text-slate-400">
-                <span>有效至: {new Date(Number(permit.deadline) * 1000).toLocaleString()}</span>
+              <div className="mt-2 text-xs text-slate-400 space-y-1">
+                <div>有效至: {new Date(Number(permit.deadline) * 1000).toLocaleString()}</div>
+                {permit.txHash && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500">交易:</span>
+                    <a
+                      href={`https://etherscan.io/tx/${permit.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-cyan-400 hover:text-cyan-300 font-mono truncate max-w-[180px]"
+                      title={permit.txHash}
+                    >
+                      {permit.txHash.slice(0, 10)}...{permit.txHash.slice(-8)}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           )

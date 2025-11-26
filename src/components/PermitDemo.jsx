@@ -107,12 +107,16 @@ export function PermitDemo() {
     if (!currentPermit) return
     
     try {
-      await activatePermit(currentPermit)
+      const result = await activatePermit(currentPermit)
       await refreshAllowance()
       
-      // 更新 localStorage 中的状态为已激活
+      // 更新 localStorage 中的状态为已激活，并保存交易哈希
       const id = `${currentPermit.owner.toLowerCase()}_${currentPermit.nonce.toString()}`
-      updatePermit(id, { activated: true })
+      updatePermit(id, { 
+        activated: true,
+        txHash: result?.hash || null,
+        activatedAt: Date.now(),
+      })
       
       // 刷新列表
       refreshList()
