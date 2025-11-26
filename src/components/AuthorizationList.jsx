@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useConnection } from 'wagmi'
 import { formatUnits } from 'viem'
 import { 
@@ -8,44 +8,55 @@ import {
 } from '../utils/authStorage'
 import { USDC_DECIMALS } from '../config/usdc'
 
-export function AuthorizationList({ onSelectAuth, isLoading, selectedAuth }) {
+export function AuthorizationList({ onSelectAuth, selectedAuth }) {
   const { address } = useConnection()
-  const [authorizations, setAuthorizations] = useState([])
+  const [refreshKey, setRefreshKey] = useState(0)
+  
+  // 刷新函数
+  const refresh = useCallback(() => {
+    setRefreshKey(k => k + 1)
+  }, [])
 
-  // 加载授权列表
-  const loadAuthorizations = useCallback(() => {
-    if (!address) {
-      setAuthorizations([])
-      return
-    }
+  // 定时刷新
+  useEffect(() => {
+    const interval = setInterval(refresh, 30000)
+    return () => clearInterval(interval)
+  }, [refresh])
+
+  // 计算授权列表
+  const authorizations = useMemo(() => {
+    // refreshKey 用于触发重新计算
+    void refreshKey
+    
+    if (!address) return []
     
     // 先清理过期的授权
     clearExpiredAuthorizations()
     
     // 获取当前地址的授权
-    const auths = getAuthorizationsByAddress(address)
-    setAuthorizations(auths)
-  }, [address])
+    return getAuthorizationsByAddress(address)
+  }, [address, refreshKey])
 
-  // 初始加载和定时刷新
+  // 当前时间戳（使用 state 避免渲染时调用不纯函数）
+  const [currentTime, setCurrentTime] = useState(() => Math.floor(Date.now() / 1000))
+
+  // 每分钟更新时间
   useEffect(() => {
-    loadAuthorizations()
-    
-    // 每30秒刷新一次列表
-    const interval = setInterval(loadAuthorizations, 30000)
+    const interval = setInterval(() => {
+      setCurrentTime(Math.floor(Date.now() / 1000))
+    }, 60000)
     return () => clearInterval(interval)
-  }, [loadAuthorizations])
+  }, [])
 
   // 检查授权是否有效
   const isValid = (auth) => {
-    const now = BigInt(Math.floor(Date.now() / 1000))
+    const now = BigInt(currentTime)
     return now >= auth.validAfter && now < auth.validBefore
   }
 
   // 获取剩余时间
   const getRemainingTime = (validBefore) => {
-    const now = Math.floor(Date.now() / 1000)
-    const remaining = Number(validBefore) - now
+    const remaining = Number(validBefore) - currentTime
     
     if (remaining <= 0) return '已过期'
     
@@ -70,7 +81,7 @@ export function AuthorizationList({ onSelectAuth, isLoading, selectedAuth }) {
   const handleRemove = (nonce, e) => {
     e.stopPropagation()
     removeAuthorization(nonce)
-    loadAuthorizations()
+    refresh()
     if (selectedNonce === nonce) {
       onSelectAuth?.(null)
     }

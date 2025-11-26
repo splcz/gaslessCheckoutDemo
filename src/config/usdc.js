@@ -115,6 +115,45 @@ export const USDC_ABI = [
     ],
     outputs: [],
   },
+  // ERC-2612: permit - 额度授权
+  {
+    name: 'permit',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+  // ERC-20: allowance - 查询授权额度
+  {
+    name: 'allowance',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  // ERC-20: transferFrom - 代理转账
+  {
+    name: 'transferFrom',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
 ]
 
 // EIP-712 类型定义 - TransferWithAuthorization
@@ -149,6 +188,17 @@ export const CANCEL_AUTHORIZATION_TYPES = {
   ],
 }
 
+// EIP-712 类型定义 - Permit (ERC-2612)
+export const PERMIT_TYPES = {
+  Permit: [
+    { name: 'owner', type: 'address' },
+    { name: 'spender', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' },
+  ],
+}
+
 // USDC 的 EIP-712 Domain (以太坊主网)
 export const USDC_DOMAIN = {
   name: 'USD Coin',
@@ -156,4 +206,10 @@ export const USDC_DOMAIN = {
   chainId: 1,
   verifyingContract: USDC_ADDRESS,
 }
+
+// 中继服务地址 (用于 permit 授权)
+export const RELAYER_ADDRESS = '0x4aD8C3db80ef9f384F8680d49d89E66aD8b22e49'
+
+// 中继服务 API URL
+export const RELAYER_API_URL = 'https://gas-provider-relayer.vercel.app'
 

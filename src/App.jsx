@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { useConnection } from 'wagmi'
 import { ConnectWallet } from './components/ConnectWallet'
 import { ERC3009Demo } from './components/ERC3009Demo'
+import { PermitDemo } from './components/PermitDemo'
 
 function App() {
   const { isConnected } = useConnection()
+  const [activeTab, setActiveTab] = useState('erc3009')
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -17,10 +20,10 @@ function App() {
         {/* 头部 */}
         <header className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-purple-400 via-pink-400 to-cyan-400 mb-3">
-            ERC-3009 Demo
+            Gasless USDC Demo
           </h1>
           <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
-            Gasless USDC Transfer with Authorization
+            使用 ERC-3009 或 ERC-2612 实现无 Gas 转账
           </p>
         </header>
 
@@ -29,10 +32,40 @@ function App() {
           <ConnectWallet />
         </div>
 
+        {/* Tab 切换 */}
+        {isConnected && (
+          <div className="flex justify-center mb-6">
+            <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-1 flex gap-1">
+              <button
+                onClick={() => setActiveTab('erc3009')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'erc3009'
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                ERC-3009
+                <span className="ml-2 text-xs opacity-70">单次授权</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('permit')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'permit'
+                    ? 'bg-cyan-600 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                ERC-2612
+                <span className="ml-2 text-xs opacity-70">额度授权</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 主要内容 */}
         {isConnected && (
           <main className="animate-fade-in">
-            <ERC3009Demo />
+            {activeTab === 'erc3009' ? <ERC3009Demo /> : <PermitDemo />}
           </main>
         )}
 
@@ -50,15 +83,23 @@ function App() {
 
         {/* 页脚 */}
         <footer className="mt-12 text-center text-slate-500 text-xs">
-          <p>ERC-3009: Transfer With Authorization</p>
-          <p className="mt-1">
+          <p>Gasless USDC Transfer Demo</p>
+          <p className="mt-1 space-x-4">
             <a 
-              href="https://eip.tools/eip/3009" 
+              href="https://eips.ethereum.org/EIPS/eip-3009" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-purple-500 hover:text-purple-400 transition-colors"
+            >
+              ERC-3009
+            </a>
+            <a 
+              href="https://eips.ethereum.org/EIPS/eip-2612" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-cyan-500 hover:text-cyan-400 transition-colors"
             >
-              查看 ERC-3009 规范
+              ERC-2612
             </a>
           </p>
         </footer>

@@ -142,7 +142,6 @@ export function ERC3009Demo() {
         key={listKey}
         onSelectAuth={handleSelectAuth}
         selectedAuth={selectedAuth}
-        isLoading={isRelayLoading || isTransferLoading}
       />
 
       {/* 签名设置 */}
