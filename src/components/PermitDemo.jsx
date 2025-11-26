@@ -5,7 +5,7 @@ import { usePermit } from '../hooks/usePermit'
 import { TARGET_ADDRESS, USDC_DECIMALS, USDC_ADDRESS, USDC_ABI } from '../config/usdc'
 import { usePublicClient } from 'wagmi'
 import { PermitList } from './PermitList'
-import { savePermit, updatePermit, revokeActivatedPermits } from '../utils/permitStorage'
+import { savePermit, updatePermitTxHash } from '../utils/permitStorage'
 
 export function PermitDemo() {
   const { address, isConnected } = useConnection()
@@ -110,15 +110,12 @@ export function PermitDemo() {
       const result = await activatePermit(currentPermit)
       await refreshAllowance()
       
-      // 更新 localStorage 中的状态为已激活，并保存交易哈希
-      const id = `${currentPermit.owner.toLowerCase()}_${currentPermit.nonce.toString()}`
-      updatePermit(id, { 
-        activated: true,
-        txHash: result?.hash || null,
-        activatedAt: Date.now(),
-      })
+      // 只保存交易哈希到 localStorage（状态从链上获取）
+      if (result?.hash) {
+        updatePermitTxHash(currentPermit.owner, currentPermit.nonce, result.hash)
+      }
       
-      // 刷新列表
+      // 刷新列表（会重新从链上获取状态）
       refreshList()
       
       // 回到签名步骤
@@ -131,19 +128,17 @@ export function PermitDemo() {
   }
 
   // 从列表选择一个 permit
+  // PermitList 已经根据链上状态过滤了，只有 pending 和 activated 的才能选择
   const handleSelectForActivation = (permit) => {
-    // 已撤销的不能选择
-    if (permit.revoked) {
-      return
-    }
+    if (!permit) return
     
-    if (!permit.activated) {
-      // 待激活的进入激活流程
+    // 如果有 txHash，说明已经激活过，选中用于转账
+    // 否则进入激活流程
+    if (permit.txHash) {
+      setSelectedPermit(permit)
+    } else {
       setCurrentPermit(permit)
       setPermitStep('activate')
-    } else {
-      // 已激活的直接选中用于转账
-      setSelectedPermit(permit)
     }
   }
 
@@ -171,18 +166,15 @@ export function PermitDemo() {
 
   // 撤销授权
   const handleRevokePermit = async () => {
-    // 立即更新 localStorage 中所有已激活 Permit 的状态为"已撤销"（不等上链）
-    revokeActivatedPermits(address)
-    refreshList()
     setSelectedPermit(null)
     
     try {
       await revokePermit(address)
       await refreshAllowance()
+      // 刷新列表（会重新从链上获取状态，allowance 变为 0）
+      refreshList()
     } catch (err) {
       console.error('撤销授权失败:', err)
-      // 注意：即使上链失败，本地状态已经标记为撤销
-      // 用户可以重新签名撤销
     }
   }
 

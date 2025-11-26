@@ -2,7 +2,19 @@
 const STORAGE_KEY = 'erc2612_permits'
 
 /**
- * 获取所有保存的 Permit
+ * localStorage 只保存以下数据（链上无法获取的）：
+ * - owner, spender, value, nonce, deadline (签名消息)
+ * - v, r, s (签名数据)
+ * - txHash (激活时的交易哈希，可选)
+ * - savedAt (保存时间)
+ * 
+ * 以下数据从链上获取：
+ * - 是否已激活：通过比较链上 nonces(owner) 与签名的 nonce
+ * - 当前 allowance：通过 allowance(owner, spender)
+ */
+
+/**
+ * 获取所有保存的 Permit（原始数据）
  */
 export function getStoredPermits() {
   try {
@@ -24,7 +36,7 @@ export function getStoredPermits() {
 }
 
 /**
- * 保存 Permit 到 localStorage
+ * 保存 Permit 到 localStorage（只保存签名数据）
  */
 export function savePermit(permit) {
   try {
@@ -41,19 +53,34 @@ export function savePermit(permit) {
       return null
     }
     
-    // 将 BigInt 转换为字符串以便 JSON 序列化
+    // 只保存必要的数据
     const permitToSave = {
-      ...permit,
-      id,
+      // 签名消息
+      owner: permit.owner,
+      spender: permit.spender,
       value: permit.value.toString(),
       nonce: permit.nonce.toString(),
       deadline: permit.deadline.toString(),
-      activated: permit.activated || false,
+      // 签名数据
+      v: permit.v,
+      r: permit.r,
+      s: permit.s,
+      // 元数据
       savedAt: Date.now(),
+      // 交易哈希（激活后填充）
+      txHash: permit.txHash || null,
     }
     
     permits.push(permitToSave)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(permits))
+    
+    const toSave = permits.map(p => ({
+      ...p,
+      value: p.value.toString(),
+      nonce: p.nonce.toString(),
+      deadline: p.deadline.toString(),
+    }))
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
     
     return permitToSave
   } catch (err) {
@@ -63,11 +90,12 @@ export function savePermit(permit) {
 }
 
 /**
- * 更新 Permit 状态（如激活状态）
+ * 更新 Permit（只能更新 txHash）
  */
-export function updatePermit(id, updates) {
+export function updatePermitTxHash(owner, nonce, txHash) {
   try {
     const permits = getStoredPermits()
+    const id = `${owner.toLowerCase()}_${nonce.toString()}`
     const index = permits.findIndex(p => 
       `${p.owner.toLowerCase()}_${p.nonce.toString()}` === id
     )
@@ -77,9 +105,8 @@ export function updatePermit(id, updates) {
       return false
     }
     
-    permits[index] = { ...permits[index], ...updates }
+    permits[index].txHash = txHash
     
-    // 重新序列化
     const toSave = permits.map(p => ({
       ...p,
       value: p.value.toString(),
@@ -98,14 +125,14 @@ export function updatePermit(id, updates) {
 /**
  * 删除指定 Permit
  */
-export function removePermit(id) {
+export function removePermit(owner, nonce) {
   try {
     const permits = getStoredPermits()
+    const id = `${owner.toLowerCase()}_${nonce.toString()}`
     const filtered = permits.filter(p => 
       `${p.owner.toLowerCase()}_${p.nonce.toString()}` !== id
     )
     
-    // 重新序列化
     const toSave = filtered.map(p => ({
       ...p,
       value: p.value.toString(),
@@ -137,38 +164,7 @@ export function getPermitsByAddress(address) {
 }
 
 /**
- * 获取有效的 Permit（未过期）
- */
-export function getValidPermits(address) {
-  const now = BigInt(Math.floor(Date.now() / 1000))
-  const permits = address 
-    ? getPermitsByAddress(address)
-    : getStoredPermits()
-    
-  return permits.filter(permit => {
-    const deadline = BigInt(permit.deadline)
-    return now < deadline
-  })
-}
-
-/**
- * 获取已激活的 Permit
- */
-export function getActivatedPermits(address) {
-  const permits = getValidPermits(address)
-  return permits.filter(p => p.activated)
-}
-
-/**
- * 获取待激活的 Permit
- */
-export function getPendingPermits(address) {
-  const permits = getValidPermits(address)
-  return permits.filter(p => !p.activated)
-}
-
-/**
- * 清除过期的 Permit
+ * 清除过期的 Permit（基于 deadline）
  */
 export function clearExpiredPermits() {
   const now = BigInt(Math.floor(Date.now() / 1000))
@@ -188,37 +184,5 @@ export function clearExpiredPermits() {
   
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   
-  return permits.length - valid.length // 返回清除的数量
+  return permits.length - valid.length
 }
-
-/**
- * 标记指定地址的所有已激活 Permit 为"已撤销"
- */
-export function revokeActivatedPermits(address) {
-  try {
-    const permits = getStoredPermits()
-    
-    const updated = permits.map(p => {
-      // 只处理指定地址的已激活 Permit
-      if (p.owner.toLowerCase() === address.toLowerCase() && p.activated) {
-        return { ...p, activated: false, revoked: true }
-      }
-      return p
-    })
-    
-    // 重新序列化
-    const toSave = updated.map(p => ({
-      ...p,
-      value: p.value.toString(),
-      nonce: p.nonce.toString(),
-      deadline: p.deadline.toString(),
-    }))
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
-    return true
-  } catch (err) {
-    console.error('撤销 Permit 状态更新失败:', err)
-    return false
-  }
-}
-

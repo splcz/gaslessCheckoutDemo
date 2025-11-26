@@ -1,39 +1,100 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useConnection } from 'wagmi'
+import { useConnection, usePublicClient } from 'wagmi'
 import { formatUnits } from 'viem'
 import { 
   getPermitsByAddress, 
   removePermit, 
   clearExpiredPermits 
 } from '../utils/permitStorage'
-import { USDC_DECIMALS } from '../config/usdc'
-
-// 辅助函数：获取并排序 permits
-function getAndSortPermits(address) {
-  if (!address) return []
-  clearExpiredPermits()
-  const stored = getPermitsByAddress(address)
-  stored.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0))
-  return stored
-}
+import { USDC_DECIMALS, USDC_ADDRESS, USDC_ABI, RELAYER_ADDRESS } from '../config/usdc'
 
 export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
   const { address } = useConnection()
+  const publicClient = usePublicClient()
   const [currentTime, setCurrentTime] = useState(() => Math.floor(Date.now() / 1000))
   const [internalRefreshKey, setInternalRefreshKey] = useState(0)
   
-  // 使用 useMemo 计算 permits，当 address、onRefresh 或 internalRefreshKey 变化时重新计算
+  // 链上数据
+  const [chainNonce, setChainNonce] = useState(null)
+  const [chainAllowance, setChainAllowance] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // 从链上获取 nonce 和 allowance
+  const fetchChainData = useCallback(async () => {
+    if (!address || !publicClient) return
+    
+    setIsLoading(true)
+    try {
+      const [nonce, allowance] = await Promise.all([
+        publicClient.readContract({
+          address: USDC_ADDRESS,
+          abi: USDC_ABI,
+          functionName: 'nonces',
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: USDC_ADDRESS,
+          abi: USDC_ABI,
+          functionName: 'allowance',
+          args: [address, RELAYER_ADDRESS],
+        }),
+      ])
+      setChainNonce(nonce)
+      setChainAllowance(allowance)
+    } catch (err) {
+      console.error('获取链上数据失败:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [address, publicClient])
+
+  // 初始加载链上数据
+  useEffect(() => {
+    fetchChainData()
+  }, [fetchChainData, onRefresh, internalRefreshKey])
+
+  // 从 localStorage 获取 permits
   const permits = useMemo(() => {
-    // 这些依赖变化时会触发重新计算
     void internalRefreshKey
     void onRefresh
-    return getAndSortPermits(address)
+    if (!address) return []
+    clearExpiredPermits()
+    const stored = getPermitsByAddress(address)
+    stored.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0))
+    return stored
   }, [address, onRefresh, internalRefreshKey])
 
-  // 刷新列表（用于删除后刷新）
+  // 判断 permit 状态（基于链上数据）
+  const getPermitStatus = useCallback((permit) => {
+    if (chainNonce === null) return 'loading'
+    
+    const permitNonce = BigInt(permit.nonce)
+    const now = BigInt(currentTime)
+    const deadline = BigInt(permit.deadline)
+    
+    // 已过期
+    if (now >= deadline) {
+      return 'expired'
+    }
+    
+    // nonce 已被使用（签名已激活或已失效）
+    if (permitNonce < chainNonce) {
+      // 检查是否有 allowance（判断是激活还是被其他方式使用）
+      if (chainAllowance && chainAllowance > 0n) {
+        return 'activated'
+      }
+      return 'used' // nonce 已用但 allowance 为 0，可能已撤销
+    }
+    
+    // nonce 未使用，签名待激活
+    return 'pending'
+  }, [chainNonce, chainAllowance, currentTime])
+
+  // 刷新列表
   const loadPermits = useCallback(() => {
     setInternalRefreshKey(k => k + 1)
-  }, [])
+    fetchChainData()
+  }, [fetchChainData])
 
   // 每分钟更新时间
   useEffect(() => {
@@ -42,11 +103,6 @@ export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
     }, 60000)
     return () => clearInterval(interval)
   }, [])
-
-  // 检查是否有效
-  const isValid = useCallback((permit) => {
-    return currentTime < Number(permit.deadline)
-  }, [currentTime])
 
   // 获取剩余时间
   const getRemainingTime = useCallback((deadline) => {
@@ -63,22 +119,22 @@ export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
   }, [currentTime])
 
   const handleSelect = (permit) => {
-    // 只有有效且未撤销的 Permit 才能选择
-    const valid = isValid(permit)
-    if (valid && !permit.revoked) {
+    const status = getPermitStatus(permit)
+    // 只有待激活或已激活的可以选择
+    if (status === 'pending' || status === 'activated') {
       onSelectPermit?.(permit)
     }
   }
 
   const handleRemove = (permit, e) => {
     e.stopPropagation()
-    const id = `${permit.owner.toLowerCase()}_${permit.nonce.toString()}`
-    removePermit(id)
+    removePermit(permit.owner, permit.nonce)
     loadPermits()
     
     // 如果删除的是当前选中的，清除选择
     if (selectedPermit && 
-        `${selectedPermit.owner.toLowerCase()}_${selectedPermit.nonce.toString()}` === id) {
+        selectedPermit.owner.toLowerCase() === permit.owner.toLowerCase() &&
+        selectedPermit.nonce.toString() === permit.nonce.toString()) {
       onSelectPermit?.(null)
     }
   }
@@ -98,21 +154,49 @@ export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
     ? `${selectedPermit.owner.toLowerCase()}_${selectedPermit.nonce.toString()}`
     : null
 
+  // 状态配置
+  const statusConfig = {
+    loading: { label: '加载中...', color: 'bg-slate-500/20 text-slate-400' },
+    pending: { label: '待激活', color: 'bg-amber-500/20 text-amber-400' },
+    activated: { label: '已激活', color: 'bg-emerald-500/20 text-emerald-400' },
+    used: { label: '已失效', color: 'bg-red-500/20 text-red-400' },
+    expired: { label: '已过期', color: 'bg-red-500/20 text-red-400' },
+  }
+
   return (
     <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white font-semibold text-lg">已保存的 Permit</h3>
-        <span className="text-slate-400 text-sm">{permits.length} 个</span>
+        <div className="flex items-center gap-2">
+          {isLoading && (
+            <svg className="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          )}
+          <span className="text-slate-400 text-sm">{permits.length} 个</span>
+        </div>
       </div>
+
+      {/* 链上 allowance 显示 */}
+      {chainAllowance !== null && chainAllowance > 0n && (
+        <div className="mb-4 p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-xl">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-emerald-400">链上已授权额度</span>
+            <span className="text-emerald-300 font-mono font-semibold">
+              {formatUnits(chainAllowance, USDC_DECIMALS)} USDC
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 max-h-80 overflow-y-auto">
         {permits.map((permit) => {
           const id = `${permit.owner.toLowerCase()}_${permit.nonce.toString()}`
-          const valid = isValid(permit)
+          const status = getPermitStatus(permit)
           const isSelected = selectedId === id
-          const isRevoked = permit.revoked
-          // 有效且未撤销的都可以选择（待激活的进入激活流程，已激活的用于转账）
-          const canSelect = valid && !isRevoked
+          const canSelect = status === 'pending' || status === 'activated'
+          const { label, color } = statusConfig[status]
           
           return (
             <div
@@ -138,29 +222,16 @@ export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* 撤销状态 */}
-                  {isRevoked ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
-                      已撤销
-                    </span>
-                  ) : (
-                    /* 激活状态 */
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      permit.activated 
-                        ? 'bg-emerald-500/20 text-emerald-400' 
-                        : 'bg-amber-500/20 text-amber-400'
-                    }`}>
-                      {permit.activated ? '已激活' : '待激活'}
+                  {/* 状态标签（从链上判断） */}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${color}`}>
+                    {label}
+                  </span>
+                  {/* 剩余时间 */}
+                  {status !== 'expired' && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                      {getRemainingTime(permit.deadline)}
                     </span>
                   )}
-                  {/* 有效期状态 */}
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    valid 
-                      ? 'bg-blue-500/20 text-blue-400' 
-                      : 'bg-red-500/20 text-red-400'
-                  }`}>
-                    {valid ? getRemainingTime(permit.deadline) : '已过期'}
-                  </span>
                 </div>
               </div>
 
