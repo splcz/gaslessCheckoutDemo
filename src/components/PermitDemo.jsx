@@ -366,7 +366,7 @@ export function PermitDemo() {
       />
 
       {/* 额度内转账（选中已激活的 Permit 时显示） */}
-      {selectedPermit && selectedPermit.activated && (
+      {selectedPermit && (
         <div className="bg-cyan-900/30 backdrop-blur border border-cyan-500/30 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
