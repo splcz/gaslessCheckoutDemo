@@ -3,11 +3,10 @@ import { useConnection } from 'wagmi'
 import { ConnectWallet } from './components/ConnectWallet'
 import { ERC3009Demo } from './components/ERC3009Demo'
 import { PermitDemo } from './components/PermitDemo'
-import { Permit2Demo } from './components/Permit2Demo'
 
 function App() {
   const { isConnected } = useConnection()
-  const [activeTab, setActiveTab] = useState('permit2') // 默认显示推荐的 Permit2
+  const [activeTab, setActiveTab] = useState('erc3009')
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -24,7 +23,7 @@ function App() {
             Gasless USDC Demo
           </h1>
           <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
-            使用 Permit2、ERC-3009 或 ERC-2612 实现无 Gas 转账
+            使用 ERC-3009 或 ERC-2612 实现无 Gas 转账
           </p>
         </header>
 
@@ -36,18 +35,7 @@ function App() {
         {/* Tab 切换 */}
         {isConnected && (
           <div className="flex justify-center mb-6">
-            <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-1 flex gap-1 flex-wrap justify-center">
-              <button
-                onClick={() => setActiveTab('permit2')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === 'permit2'
-                    ? 'bg-emerald-600 text-white shadow-lg'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                }`}
-              >
-                Permit2
-                <span className="ml-2 text-xs opacity-70">✓ 推荐</span>
-              </button>
+            <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-1 flex gap-1">
               <button
                 onClick={() => setActiveTab('erc3009')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -77,9 +65,7 @@ function App() {
         {/* 主要内容 */}
         {isConnected && (
           <main className="animate-fade-in">
-            {activeTab === 'permit2' && <Permit2Demo />}
-            {activeTab === 'erc3009' && <ERC3009Demo />}
-            {activeTab === 'permit' && <PermitDemo />}
+            {activeTab === 'erc3009' ? <ERC3009Demo /> : <PermitDemo />}
           </main>
         )}
 
@@ -99,14 +85,6 @@ function App() {
         <footer className="mt-12 text-center text-slate-500 text-xs">
           <p>Gasless USDC Transfer Demo</p>
           <p className="mt-1 space-x-4">
-            <a 
-              href="https://github.com/Uniswap/permit2" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-emerald-500 hover:text-emerald-400 transition-colors"
-            >
-              Permit2
-            </a>
             <a 
               href="https://eips.ethereum.org/EIPS/eip-3009" 
               target="_blank" 

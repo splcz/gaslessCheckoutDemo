@@ -1,5 +1,10 @@
-// USDC 合约地址 (以太坊主网)
-export const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+// 网络配置：切换 'mainnet' 或 'sepolia'
+const NETWORK = 'sepolia'
+
+// USDC 合约地址
+export const USDC_ADDRESS = NETWORK === 'mainnet' 
+  ? '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'  // 主网
+  : '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'  // Sepolia
 
 // 目标转账地址
 export const TARGET_ADDRESS = '0xd1122c8c941fe716c8b0c57b832c90acb4401a05'
@@ -199,46 +204,23 @@ export const PERMIT_TYPES = {
   ],
 }
 
-// USDC 的 EIP-712 Domain (以太坊主网)
+// USDC 的 EIP-712 Domain
 export const USDC_DOMAIN = {
   name: 'USD Coin',
   version: '2',
-  chainId: 1,
+  chainId: NETWORK === 'mainnet' ? 1 : 11155111,  // 1=主网, 11155111=Sepolia
   verifyingContract: USDC_ADDRESS,
 }
 
-// 中继服务地址 (用于 permit 授权)
-export const RELAYER_ADDRESS = '0x650629B1BE4A81a32018eCc4015f091fC3f25346'
+// Paymaster 合约地址 (用于 permit 授权)
+// 使用合约地址后，钱包不再显示 "untrusted EOA" 警告
+export const RELAYER_ADDRESS = NETWORK === 'mainnet'
+  ? '0x0000000000000000000000000000000000000000'  // 主网部署后更新
+  : '0x217fe9B8129b830D50Bcd51b0eD831E61f6b571e'  // Sepolia Paymaster
 
 // 中继服务 API URL
 export const RELAYER_API_URL = 'https://gas-provider-relayer.vercel.app'
 
-// ============================================
-// Permit2 配置（Uniswap 行业标准，已审计）
-// https://github.com/Uniswap/permit2
-// ============================================
-
-// Permit2 合约地址（所有链相同）
-export const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3'
-
-// Permit2 EIP-712 Domain
-export const PERMIT2_DOMAIN = {
-  name: 'Permit2',
-  chainId: 1,
-  verifyingContract: PERMIT2_ADDRESS,
-}
-
-// Permit2 SignatureTransfer 类型定义
-export const PERMIT2_TRANSFER_TYPES = {
-  TokenPermissions: [
-    { name: 'token', type: 'address' },
-    { name: 'amount', type: 'uint256' },
-  ],
-  PermitTransferFrom: [
-    { name: 'permitted', type: 'TokenPermissions' },
-    { name: 'spender', type: 'address' },
-    { name: 'nonce', type: 'uint256' },
-    { name: 'deadline', type: 'uint256' },
-  ],
-}
+// 当前网络
+export const CURRENT_NETWORK = NETWORK
 
