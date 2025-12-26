@@ -1,10 +1,60 @@
-// 网络配置：切换 'mainnet' 或 'sepolia'
-const NETWORK = 'sepolia'
+// ============ 多网络配置 ============
 
-// USDC 合约地址
-export const USDC_ADDRESS = NETWORK === 'mainnet' 
-  ? '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'  // 主网
-  : '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'  // Sepolia
+// 网络配置映射
+export const NETWORK_CONFIG = {
+  // 以太坊主网 (chainId: 1)
+  1: {
+    name: 'Ethereum Mainnet',
+    usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    paymaster: '0x0000000000000000000000000000000000000000', // 主网部署后更新
+    relayerApi: 'https://gas-provider-relayer.vercel.app',
+  },
+  // Sepolia 测试网 (chainId: 11155111)
+  11155111: {
+    name: 'Sepolia Testnet',
+    usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+    paymaster: '0x217fe9B8129b830D50Bcd51b0eD831E61f6b571e',
+    relayerApi: 'https://gas-provider-relayer.vercel.app',
+  },
+}
+
+// 根据 chainId 获取配置
+export function getNetworkConfig(chainId) {
+  return NETWORK_CONFIG[chainId] || NETWORK_CONFIG[11155111] // 默认 Sepolia
+}
+
+// 根据 chainId 获取 USDC 地址
+export function getUsdcAddress(chainId) {
+  return getNetworkConfig(chainId).usdc
+}
+
+// 根据 chainId 获取 Paymaster 地址
+export function getPaymasterAddress(chainId) {
+  return getNetworkConfig(chainId).paymaster
+}
+
+// 根据 chainId 获取 Relayer API URL
+export function getRelayerApiUrl(chainId) {
+  return getNetworkConfig(chainId).relayerApi
+}
+
+// 根据 chainId 获取 EIP-712 Domain
+export function getUsdcDomain(chainId) {
+  const config = getNetworkConfig(chainId)
+  return {
+    name: 'USD Coin',
+    version: '2',
+    chainId: chainId,
+    verifyingContract: config.usdc,
+  }
+}
+
+// ============ 兼容旧代码的默认导出 ============
+// 默认使用 Sepolia（测试阶段）
+const DEFAULT_CHAIN_ID = 11155111
+
+// USDC 合约地址（兼容旧代码）
+export const USDC_ADDRESS = getUsdcAddress(DEFAULT_CHAIN_ID)
 
 // 目标转账地址
 export const TARGET_ADDRESS = '0xd1122c8c941fe716c8b0c57b832c90acb4401a05'
@@ -204,23 +254,16 @@ export const PERMIT_TYPES = {
   ],
 }
 
-// USDC 的 EIP-712 Domain
-export const USDC_DOMAIN = {
-  name: 'USD Coin',
-  version: '2',
-  chainId: NETWORK === 'mainnet' ? 1 : 11155111,  // 1=主网, 11155111=Sepolia
-  verifyingContract: USDC_ADDRESS,
-}
+// USDC 的 EIP-712 Domain（兼容旧代码，使用默认链）
+export const USDC_DOMAIN = getUsdcDomain(DEFAULT_CHAIN_ID)
 
-// Paymaster 合约地址 (用于 permit 授权)
+// Paymaster 合约地址（兼容旧代码）
 // 使用合约地址后，钱包不再显示 "untrusted EOA" 警告
-export const RELAYER_ADDRESS = NETWORK === 'mainnet'
-  ? '0x0000000000000000000000000000000000000000'  // 主网部署后更新
-  : '0x217fe9B8129b830D50Bcd51b0eD831E61f6b571e'  // Sepolia Paymaster
+export const RELAYER_ADDRESS = getPaymasterAddress(DEFAULT_CHAIN_ID)
 
-// 中继服务 API URL
-export const RELAYER_API_URL = 'https://gas-provider-relayer.vercel.app'
+// 中继服务 API URL（兼容旧代码）
+export const RELAYER_API_URL = getRelayerApiUrl(DEFAULT_CHAIN_ID)
 
-// 当前网络
-export const CURRENT_NETWORK = NETWORK
+// 支持的链 ID 列表
+export const SUPPORTED_CHAIN_IDS = Object.keys(NETWORK_CONFIG).map(Number)
 

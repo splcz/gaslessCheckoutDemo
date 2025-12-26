@@ -1,19 +1,27 @@
-import { useCallback, useState } from 'react'
-import { useSignTypedData, usePublicClient } from 'wagmi'
+import { useCallback, useState, useMemo } from 'react'
+import { useSignTypedData, usePublicClient, useConnection } from 'wagmi'
 import { parseUnits } from 'viem'
 import {
-  USDC_ADDRESS,
   USDC_ABI,
-  USDC_DOMAIN,
   USDC_DECIMALS,
   PERMIT_TYPES,
-  RELAYER_ADDRESS,
-  RELAYER_API_URL,
+  getUsdcAddress,
+  getPaymasterAddress,
+  getRelayerApiUrl,
+  getUsdcDomain,
 } from '../config/usdc'
 
 export function usePermit() {
   const { signTypedDataAsync } = useSignTypedData()
   const publicClient = usePublicClient()
+  const { chain } = useConnection()
+
+  // 根据当前链动态获取配置
+  const chainId = chain?.id || 11155111 // 默认 Sepolia
+  const USDC_ADDRESS = useMemo(() => getUsdcAddress(chainId), [chainId])
+  const RELAYER_ADDRESS = useMemo(() => getPaymasterAddress(chainId), [chainId])
+  const RELAYER_API_URL = useMemo(() => getRelayerApiUrl(chainId), [chainId])
+  const USDC_DOMAIN = useMemo(() => getUsdcDomain(chainId), [chainId])
   
   const [permit, setPermit] = useState(null)
   const [isSigningLoading, setIsSigningLoading] = useState(false)
@@ -303,7 +311,11 @@ export function usePermit() {
     transferViaRelay,
     revokePermit,
     clearPermit,
+    // 动态配置
+    chainId,
+    USDC_ADDRESS,
     RELAYER_ADDRESS,
+    RELAYER_API_URL,
   }
 }
 
