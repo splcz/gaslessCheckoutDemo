@@ -208,8 +208,37 @@ export const USDC_DOMAIN = {
 }
 
 // 中继服务地址 (用于 permit 授权)
-export const RELAYER_ADDRESS = '0x4aD8C3db80ef9f384F8680d49d89E66aD8b22e49'
+export const RELAYER_ADDRESS = '0x650629B1BE4A81a32018eCc4015f091fC3f25346'
 
 // 中继服务 API URL
 export const RELAYER_API_URL = 'https://gas-provider-relayer.vercel.app'
+
+// ============================================
+// Permit2 配置（Uniswap 行业标准，已审计）
+// https://github.com/Uniswap/permit2
+// ============================================
+
+// Permit2 合约地址（所有链相同）
+export const PERMIT2_ADDRESS = '0x000000000022D473030F116dDEE9F6B43aC78BA3'
+
+// Permit2 EIP-712 Domain
+export const PERMIT2_DOMAIN = {
+  name: 'Permit2',
+  chainId: 1,
+  verifyingContract: PERMIT2_ADDRESS,
+}
+
+// Permit2 SignatureTransfer 类型定义
+export const PERMIT2_TRANSFER_TYPES = {
+  TokenPermissions: [
+    { name: 'token', type: 'address' },
+    { name: 'amount', type: 'uint256' },
+  ],
+  PermitTransferFrom: [
+    { name: 'permitted', type: 'TokenPermissions' },
+    { name: 'spender', type: 'address' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' },
+  ],
+}
 
