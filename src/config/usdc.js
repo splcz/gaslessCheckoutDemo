@@ -8,6 +8,7 @@ export const NETWORK_CONFIG = {
     usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     paymaster: '0x0000000000000000000000000000000000000000', // 主网部署后更新
     relayerApi: 'https://gas-provider-relayer.vercel.app',
+    explorer: 'https://etherscan.io',
   },
   // Sepolia 测试网 (chainId: 11155111)
   11155111: {
@@ -15,6 +16,7 @@ export const NETWORK_CONFIG = {
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
     paymaster: '0x217fe9B8129b830D50Bcd51b0eD831E61f6b571e',
     relayerApi: 'https://gas-provider-relayer.vercel.app',
+    explorer: 'https://sepolia.etherscan.io',
   },
 }
 
@@ -38,9 +40,37 @@ export function getRelayerApiUrl(chainId) {
   return getNetworkConfig(chainId).relayerApi
 }
 
+// 根据 chainId 获取区块浏览器 URL
+export function getExplorerUrl(chainId) {
+  return getNetworkConfig(chainId).explorer
+}
+
+// 获取交易链接
+export function getTxUrl(chainId, txHash) {
+  return `${getExplorerUrl(chainId)}/tx/${txHash}`
+}
+
+// 获取地址链接
+export function getAddressUrl(chainId, address) {
+  return `${getExplorerUrl(chainId)}/address/${address}`
+}
+
 // 根据 chainId 获取 EIP-712 Domain
+// 注意：Sepolia 测试 USDC 的 domain 配置可能与主网不同
 export function getUsdcDomain(chainId) {
   const config = getNetworkConfig(chainId)
+  
+  // Sepolia 测试 USDC 使用不同的 domain 配置
+  if (chainId === 11155111) {
+    return {
+      name: 'USDC',  // Sepolia 测试 USDC 的 name 是 "USDC"
+      version: '2',
+      chainId: chainId,
+      verifyingContract: config.usdc,
+    }
+  }
+  
+  // 主网 USDC
   return {
     name: 'USD Coin',
     version: '2',

@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useConnection } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 import { usePermit } from '../hooks/usePermit'
-import { TARGET_ADDRESS, USDC_DECIMALS, USDC_ADDRESS, USDC_ABI } from '../config/usdc'
+import { TARGET_ADDRESS, USDC_DECIMALS, USDC_ADDRESS, USDC_ABI, getTxUrl } from '../config/usdc'
 import { usePublicClient } from 'wagmi'
 import { PermitList } from './PermitList'
 import { savePermit, updatePermitTxHash } from '../utils/permitStorage'
 
 export function PermitDemo() {
-  const { address, isConnected } = useConnection()
+  const { address, isConnected, chain } = useConnection()
+  const chainId = chain?.id || 11155111 // 默认 Sepolia
   const publicClient = usePublicClient()
   const {
     isSigningLoading,
@@ -460,7 +461,7 @@ export function PermitDemo() {
         <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-4">
           <p className="text-emerald-400 text-sm mb-2">交易已提交！</p>
           <a
-            href={`https://etherscan.io/tx/${txHash}`}
+            href={getTxUrl(chainId, txHash)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-cyan-400 hover:text-cyan-300 text-sm font-mono break-all underline"

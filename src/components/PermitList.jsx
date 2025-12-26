@@ -6,10 +6,11 @@ import {
   removePermit, 
   clearExpiredPermits 
 } from '../utils/permitStorage'
-import { USDC_DECIMALS, USDC_ADDRESS, USDC_ABI, RELAYER_ADDRESS } from '../config/usdc'
+import { USDC_DECIMALS, USDC_ADDRESS, USDC_ABI, RELAYER_ADDRESS, getTxUrl } from '../config/usdc'
 
 export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
-  const { address } = useConnection()
+  const { address, chain } = useConnection()
+  const chainId = chain?.id || 11155111 // 默认 Sepolia
   const publicClient = usePublicClient()
   const [currentTime, setCurrentTime] = useState(() => Math.floor(Date.now() / 1000))
   const [internalRefreshKey, setInternalRefreshKey] = useState(0)
@@ -258,7 +259,7 @@ export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
                   <div className="flex items-center gap-1">
                     <span className="text-slate-500">交易:</span>
                     <a
-                      href={`https://etherscan.io/tx/${permit.txHash}`}
+                      href={getTxUrl(chainId, permit.txHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}

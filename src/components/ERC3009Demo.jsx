@@ -3,11 +3,12 @@ import { useConnection } from 'wagmi'
 import { formatUnits } from 'viem'
 import { useERC3009 } from '../hooks/useERC3009'
 import { AuthorizationList } from './AuthorizationList'
-import { TARGET_ADDRESS, USDC_DECIMALS } from '../config/usdc'
+import { TARGET_ADDRESS, USDC_DECIMALS, getTxUrl } from '../config/usdc'
 import { removeAuthorization } from '../utils/authStorage'
 
 export function ERC3009Demo() {
-  const { address, isConnected } = useConnection()
+  const { address, isConnected, chain } = useConnection()
+  const chainId = chain?.id || 11155111 // 默认 Sepolia
   const {
     authorization,
     isSigningLoading,
@@ -302,7 +303,7 @@ export function ERC3009Demo() {
         <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl p-4">
           <p className="text-emerald-400 text-sm mb-2">交易已提交！</p>
           <a
-            href={`https://etherscan.io/tx/${txHash}`}
+            href={getTxUrl(chainId, txHash)}
             target="_blank"
             rel="noopener noreferrer"
             className="text-cyan-400 hover:text-cyan-300 text-sm font-mono break-all underline"
