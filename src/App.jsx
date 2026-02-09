@@ -27,6 +27,25 @@ function App() {
           </p>
         </header>
 
+        {/* 兼容性提示横幅 */}
+        <div className="max-w-lg mx-auto mb-6">
+          <div className="bg-amber-900/20 border border-amber-500/30 rounded-xl px-4 py-3 flex items-start gap-3">
+            <span className="text-amber-400 mt-0.5 shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <div className="text-sm space-y-1">
+              <p className="text-amber-300 font-medium">兼容性说明（单个Layer2网络开发成本较低，当前不做多网络支持）</p>
+              <ul className="text-amber-200/70 text-xs space-y-0.5 list-disc list-inside">
+                <li>Demo当前仅支持 <strong className="text-amber-200">USDC</strong> 代币</li>
+                <li>ERC-2612 当前仅支持 <strong className="text-amber-200">Base 主网</strong> 和 <strong className="text-amber-200">Base Sepolia 测试网</strong></li>
+                <li>ERC-3009 当前仅在 <strong className="text-amber-200">Base 主网</strong> 上可用</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* 连接钱包区域 */}
         <div className="flex justify-center mb-8">
           <ConnectWallet />
