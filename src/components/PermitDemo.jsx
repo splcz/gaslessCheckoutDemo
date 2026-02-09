@@ -9,7 +9,7 @@ import { savePermit, updatePermitTxHash } from '../utils/permitStorage'
 
 export function PermitDemo() {
   const { address, isConnected, chain } = useConnection()
-  const chainId = chain?.id || 11155111 // 默认 Sepolia
+  const chainId = chain?.id || 8453 // 默认 Base
   const publicClient = usePublicClient()
   const {
     isSigningLoading,
@@ -28,7 +28,7 @@ export function PermitDemo() {
 
   const [balance, setBalance] = useState(0n)
   const [allowance, setAllowance] = useState(0n)
-  const [permitAmount, setPermitAmount] = useState('10')
+  const [permitAmount, setPermitAmount] = useState('1')
   const [transferAmount, setTransferAmount] = useState('1')
   const [validityHours, setValidityHours] = useState('24')
   

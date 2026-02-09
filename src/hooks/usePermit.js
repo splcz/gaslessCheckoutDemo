@@ -17,7 +17,7 @@ export function usePermit() {
   const { chain } = useConnection()
 
   // 根据当前链动态获取配置
-  const chainId = chain?.id || 11155111 // 默认 Sepolia
+  const chainId = chain?.id || 8453 // 默认 Base
   const USDC_ADDRESS = useMemo(() => getUsdcAddress(chainId), [chainId])
   const RELAYER_ADDRESS = useMemo(() => getPaymasterAddress(chainId), [chainId])
   const RELAYER_API_URL = useMemo(() => getRelayerApiUrl(chainId), [chainId])

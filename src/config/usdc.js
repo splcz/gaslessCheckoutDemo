@@ -1,28 +1,34 @@
 // ============ 多网络配置 ============
 
+// 判断是否为开发环境
+const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+// Relayer API 地址：开发环境用本地，生产环境用 Vercel
+const RELAYER_API = isDev ? 'http://localhost:3001' : 'https://gas-provider-relayer.vercel.app'
+
 // 网络配置映射
 export const NETWORK_CONFIG = {
-  // 以太坊主网 (chainId: 1)
-  1: {
-    name: 'Ethereum Mainnet',
-    usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    paymaster: '0x0000000000000000000000000000000000000000', // 主网部署后更新
-    relayerApi: 'https://gas-provider-relayer.vercel.app',
-    explorer: 'https://etherscan.io',
-  },
-  // Sepolia 测试网 (chainId: 11155111)
-  11155111: {
-    name: 'Sepolia Testnet',
-    usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+  // Base 主网 (chainId: 8453)
+  8453: {
+    name: 'Base',
+    usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     paymaster: '0x217fe9B8129b830D50Bcd51b0eD831E61f6b571e',
-    relayerApi: 'https://gas-provider-relayer.vercel.app',
-    explorer: 'https://sepolia.etherscan.io',
+    relayerApi: RELAYER_API,
+    explorer: 'https://basescan.org',
+  },
+  // Base Sepolia 测试网 (chainId: 84532)
+  84532: {
+    name: 'Base Sepolia',
+    usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    paymaster: '0xE004eB206f7D26CD0E3d69eDB85814Cc137Ae9D9',
+    relayerApi: RELAYER_API,
+    explorer: 'https://sepolia.basescan.org',
   },
 }
 
 // 根据 chainId 获取配置
 export function getNetworkConfig(chainId) {
-  return NETWORK_CONFIG[chainId] || NETWORK_CONFIG[11155111] // 默认 Sepolia
+  return NETWORK_CONFIG[chainId] || NETWORK_CONFIG[8453] // 默认 Base
 }
 
 // 根据 chainId 获取 USDC 地址
@@ -56,21 +62,20 @@ export function getAddressUrl(chainId, address) {
 }
 
 // 根据 chainId 获取 EIP-712 Domain
-// 注意：Sepolia 测试 USDC 的 domain 配置可能与主网不同
 export function getUsdcDomain(chainId) {
   const config = getNetworkConfig(chainId)
   
-  // Sepolia 测试 USDC 使用不同的 domain 配置
-  if (chainId === 11155111) {
+  // Base Sepolia 测试网 USDC
+  if (chainId === 84532) {
     return {
-      name: 'USDC',  // Sepolia 测试 USDC 的 name 是 "USDC"
+      name: 'USDC',  // Base Sepolia 测试 USDC 的 name
       version: '2',
       chainId: chainId,
       verifyingContract: config.usdc,
     }
   }
   
-  // 主网 USDC
+  // Base 主网 USDC
   return {
     name: 'USD Coin',
     version: '2',
@@ -80,8 +85,8 @@ export function getUsdcDomain(chainId) {
 }
 
 // ============ 兼容旧代码的默认导出 ============
-// 默认使用 Sepolia（测试阶段）
-const DEFAULT_CHAIN_ID = 11155111
+// 默认使用 Base 主网
+const DEFAULT_CHAIN_ID = 8453
 
 // USDC 合约地址（兼容旧代码）
 export const USDC_ADDRESS = getUsdcAddress(DEFAULT_CHAIN_ID)

@@ -10,7 +10,7 @@ import { USDC_DECIMALS, USDC_ADDRESS, USDC_ABI, RELAYER_ADDRESS, getTxUrl } from
 
 export function PermitList({ onSelectPermit, selectedPermit, onRefresh }) {
   const { address, chain } = useConnection()
-  const chainId = chain?.id || 11155111 // 默认 Sepolia
+  const chainId = chain?.id || 8453 // 默认 Base
   const publicClient = usePublicClient()
   const [currentTime, setCurrentTime] = useState(() => Math.floor(Date.now() / 1000))
   const [internalRefreshKey, setInternalRefreshKey] = useState(0)

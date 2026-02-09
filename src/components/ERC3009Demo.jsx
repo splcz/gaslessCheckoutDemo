@@ -8,7 +8,7 @@ import { removeAuthorization } from '../utils/authStorage'
 
 export function ERC3009Demo() {
   const { address, isConnected, chain } = useConnection()
-  const chainId = chain?.id || 11155111 // 默认 Sepolia
+  const chainId = chain?.id || 8453 // 默认 Base
   const {
     authorization,
     isSigningLoading,
